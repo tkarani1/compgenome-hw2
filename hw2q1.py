@@ -73,7 +73,6 @@ for r in range(num_reads):
         if seq[p] not in ['A', 'C', 'T', 'G']:
             summary[p][4] += 1
 
-print(summary)
 np.savetxt(summary_file, summary, fmt = '%0d', delimiter=' ')
 
 # iterate through each read
