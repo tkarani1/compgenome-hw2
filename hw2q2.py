@@ -77,18 +77,44 @@ for c in range(1, T_len - k):
 
 # create summary 
 num_reads = len(reads)
-summary = np.zeros((num_reads, 5), dtype = 'uint8')
+summary = np.empty((num_reads, 5), dtype='object')
+all_matches = np.empty((num_reads, 1), dtype = 'object')
+all_fruitless = np.empty((num_reads, 1), dtype = 'object')
+
 print(T)
 print(k_mer_table)
 
 for r in range(num_reads): 
-    query = reads[r][1][0:6]
+    query = reads[r][1][0:k]
     
     # (a) The number of index hits, i.e. the total number of times its leftmost 6-mer occurs in the genome T
     if (k_mer_table.get(query)): 
-        summary[r][0] = len(k_mer_table[query])
+        hits = k_mer_table[query]
+        summary[r][0] = len(hits)
     else: 
+        hits = None
         summary[r][0] = 0
-    print(query)
-    print(summary[r][0])
+    
+    # determine matches and fruitless hits 
+    
+    matches = []
+    fruitless = []
+    for h in hits:  
+        P_str = reads[r][1][k:]
+        T_str = T[h+k:h+k+len(P_str)]
+        if P_str == T_str:
+            matches.append(h)
+        else: 
+            fruitless.append(h)
+
+    summary[r][1] = len(matches)
+    summary[r][2] = len(fruitless)
+    all_matches[r][0] = matches
+    all_fruitless[r][0] = fruitless
+    summary[r][3] = matches
+    summary[r][4] = fruitless
+
+print(summary)
+np.savetxt(output_file, summary, fmt = '%0d %0d %0d %s %s', delimiter=' ')   
+# np.savetxt(output_file, summary[:][0:2], fmt = ('%0d %0d %0d'), delimiter=' ')   
 
