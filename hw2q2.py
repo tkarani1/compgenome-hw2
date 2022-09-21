@@ -78,8 +78,17 @@ for c in range(1, T_len - k):
 # create summary 
 num_reads = len(reads)
 summary = np.zeros((num_reads, 5), dtype = 'uint8')
+print(T)
+print(k_mer_table)
 
 for r in range(num_reads): 
-    query = reads[r][1][-6:]
+    query = reads[r][1][0:6]
+    
+    # (a) The number of index hits, i.e. the total number of times its leftmost 6-mer occurs in the genome T
+    if (k_mer_table.get(query)): 
+        summary[r][0] = len(k_mer_table[query])
+    else: 
+        summary[r][0] = 0
     print(query)
+    print(summary[r][0])
 
