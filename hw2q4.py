@@ -47,13 +47,13 @@ def make_hamtable(p, keys, maxHammingDistance):
             p_hamtable[key] = d
     return p_hamtable
 
-def parse_fasta_1(fh):  # WHY DOESN'T THIS IGNORE NEW LINES
-    """ Parse reads from a FASTA filehandle.  We
-        return one string of the entire dna text """
-    
-    fh.readline() # ignore first line
-    T =  fh.read().rstrip()
-    return T
+def phred33_to_q(qual):
+  """ Turn Phred+33 ASCII-encoded quality into Phred-scaled integer """
+  return ord(qual)-33
+
+def q_to_phred33(Q):
+  """ Turn Phred-scaled integer into Phred+33 ASCII-encoded quality """
+  return chr(Q + 33)
 
 import sys
 import numpy as np
@@ -89,13 +89,11 @@ for c in range(1, T_len - k + 1):
 
 # create summary 
 num_reads = len(reads)
-summary = np.empty((num_reads, 5), dtype='uint16')
+summary = np.empty((num_reads, 5), dtype='uint8')
 matches = np.empty((num_reads, 5), dtype='object')
 matches = [[[] for x in range(5)] for y in range(num_reads)] 
 
-for r in range(num_reads): # FIX THIS
-        
-    # get number of exact hits    
+for r in range(num_reads):
         # 5 offsets
     for i in range(5): 
         query = reads[r][1][(i * 6):(i * 6 + 6)]
@@ -121,8 +119,8 @@ for r in range(num_reads): # FIX THIS
     p4_hamtable = make_hamtable(p4, k_mer_keys, 4)
     p5_hamtable = make_hamtable(p5, k_mer_keys, 4)
 
-    p1_keys = p1_hamtable.keys()
 
+    p1_keys = p1_hamtable.keys()
     for key in p1_keys: 
         key_offsets = k_mer_table[key]
         for o in key_offsets: 
@@ -130,39 +128,92 @@ for r in range(num_reads): # FIX THIS
 
             # ANOTHER OPTION: check if any of the keys for p2 have offsets at the next 6
             if p2_hamtable.get(T[o+6*1:o+6*2]) is None:
-                continue
+                break
             else: 
                 ham_sum += p2_hamtable.get(T[o+6*1:o+6*2])
 
             if p3_hamtable.get(T[o+6*2:o+6*3]) is None: 
-                continue
-            else:
+                break
+            else: 
                 ham_sum += p3_hamtable.get(T[o+6*2:o+6*3])
             
             if p4_hamtable.get(T[o+6*3:o+6*4]) is None: 
-                continue
-            else:
+                break
+            else: 
                 ham_sum += p4_hamtable.get(T[o+6*3:o+6*4])
             
             if p5_hamtable.get(T[o+6*4:o+6*5]) is None: 
-                continue
+                break
             else: 
                 ham_sum += p5_hamtable.get(T[o+6*4:o+6*5])
 
             if ham_sum <= 4:
                 matches[r][ham_sum].append(o)
 
-output_ptr = open(output_file, 'w')
-output_txt = ''
-for r in range(num_reads):
-    output_txt += ' '.join(map(str, summary[r][:])) + ' '
-    output_txt += '0:' + ','.join(map(str, sorted(matches[r][0]))) + ' '
-    output_txt += '1:' + ','.join(map(str, sorted(matches[r][1]))) + ' '
-    output_txt += '2:' + ','.join(map(str, sorted(matches[r][2]))) + ' '
-    output_txt += '3:' + ','.join(map(str, sorted(matches[r][3]))) + ' '
-    output_txt += '4:' + ','.join(map(str, sorted(matches[r][4]))) + '\n'
+# create table 'variants' to hold information on all of the positions of T
+# 0: char in T, 
+# 1: number of exact matches, 
+# 2: number of mismatches, 
+# 3: list of match touples (read, nt, qual), 
+# 4: list of mismatch touples (read, nt, qual)
+# 5: total weight
 
-output_ptr.write(output_txt)
-output_ptr.close()
-  
+variants = np.empty((T_len, 6), dtype='object')  
+variants = [[[] for x in [3,4]] for y in range(T_len)]
+variants = [[0 for x in [1,2,5]] for y in range(T_len)]
+variants = [['' for x in [0]] for y in range(T_len)]   
+greater_than_20_idx = []
+greatest_weight = ()
+second_greatest_weight = ()
+
+# print(reads[0])
+# print(reads[0][1][4])
+
+for r in range(num_reads):
+    for m in range(5): # diff types of mismatches
+        if len(matches[r][m]) == 0: 
+            continue
+        
+        print(matches[r][m])
+
+        for i in matches[r][m]: 
+            
+            T_nt = T[i + 0]
+            read_nt = reads[r][1][i + 0]
+            read_qual = phred33_to_q(reads[r][2][i + 0])
+            variants[i + 0][0] = T_nt
+
+            print(T_nt)
+            print(read_nt)
+            print(read_qual)
+
+            if (T_nt == read_nt):  # bases match
+                print(variants[i + 0][1])
+                variants[i + 0][1] += 1
+                variants[i + 0][3].append((r, read_nt, read_qual))
+            else:  # bases don't match
+                variants[i + 0][2] += 1
+                variants[i + 0][4].append((r, read_nt, read_qual))
+            
+            variants[i + 0][5] += read_qual
+            idx_weight = variants[i + 0][5]
+
+            if idx_weight > 20: 
+                greater_than_20_idx.append(i)
+
+                if idx_weight > second_greatest_weight[2] & idx_weight <= greatest_weight[2]:
+                    greatest_weight = (second_greatest_weight[0], second_greatest_weight[1], second_greatest_weight[2])
+                    second_greatest_weight = (i + 0, T_nt, idx_weight)
+                
+                elif idx_weight > greatest_weight[2]: 
+                    second_greatest_weight = (greatest_weight[0], greatest_weight[1], greatest_weight[2])
+                    greatest_weight = (i + 0, T_nt, idx_weight)
+
+
+
+
+
+
+
+
 

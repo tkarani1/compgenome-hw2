@@ -76,13 +76,14 @@ all_fruitless = np.empty((num_reads, 1), dtype = 'object')
 
 for r in range(num_reads): 
     query = reads[r][1][0:k]
-    
+    if (r == 11 or r == 12): 
+        print(query)
     # (a) The number of index hits, i.e. the total number of times its leftmost 6-mer occurs in the genome T
     if (k_mer_table.get(query)): 
         hits = k_mer_table[query]
         summary[r][0] = len(hits)
     else: 
-        hits = None
+        hits = []
         summary[r][0] = 0
     
     # determine matches and fruitless hits 
@@ -107,11 +108,13 @@ for r in range(num_reads):
 output_ptr = open(output_file, 'w')
 output_txt = ''
 for r in range(num_reads):
-    output_txt += ' '.join(map(str, summary[r][0:3])) + ' '
-    output_txt += ' '.join(map(str, summary[r][3])) + ' '
-    output_txt += ' '.join(map(str, summary[r][4])) + '\n'
+    output_txt += ' '.join(map(str, summary[r][0:3])) 
+    output_txt += (' ' + ' '.join(map(str, sorted(summary[r][3]))) )if len(summary[r][3]) > 0 else ''
+    output_txt += (' ' + ' '.join(map(str, sorted(summary[r][4])))) if len(summary[r][4]) > 0 else ''
+    output_txt += '\n'
 
 output_ptr.write(output_txt)
 output_ptr.close()
-# np.savetxt(output_file, summary[:][0:2], fmt = ('%0d %0d %0d'), delimiter=' ')   
 
+print(T.find('AAATAC'))
+print(T.find('CGGAGG'))
