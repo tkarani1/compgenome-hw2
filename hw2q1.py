@@ -38,29 +38,29 @@ reads_file = open(reads_file, "r")
 reads = parse_fastq(reads_file)
 reads_file.close()
 num_positions = len(reads[0][1]) # assume that all reads are the same length
-num_reads = len(reads[:][0])
+num_reads = len(reads)
 
 # TRY WITH EMPTY ARRAY
-summary = np.zeros((num_positions, 5), dtype = 'uint8')
+summary = np.zeros((num_positions, 5), dtype = 'uint16')
 
 # calculate summary stats for each read
 for r in range(num_reads): 
-    name, seq, qual = reads[r]
+    name, seq, qual = reads[r]    
     q_string = list(map(phred33_to_q, qual))
 
     for p in range(num_positions):
 
         if r == 0: 
-           summary[p][0] = q_string[p]
-           summary[p][1] = q_string[p]
+            summary[p][0] = q_string[p]
+            summary[p][1] = q_string[p]
         else: 
             # min quality 
             if q_string[p] < summary[p][0]: 
                 summary[p][0] = q_string[p]
-        
-            # max quality 
-            if q_string[p] > summary[p][1]: 
-                summary[p][1] = q_string[p]
+    
+        # max quality 
+        if q_string[p] > summary[p][1]: 
+            summary[p][1] = q_string[p]
 
         # num qualities < 10
         if q_string[p] < 10: 
