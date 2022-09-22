@@ -40,6 +40,7 @@ reads_file.close()
 num_positions = len(reads[0][1]) # assume that all reads are the same length
 num_reads = len(reads[:][0])
 
+# TRY WITH EMPTY ARRAY
 summary = np.zeros((num_positions, 5), dtype = 'uint8')
 
 # calculate summary stats for each read

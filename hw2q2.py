@@ -60,7 +60,7 @@ T_len = len(T)
 k = 6
 k_mer_table = {T[0:k] : [0]}
 
-for c in range(1, T_len - k):
+for c in range(1, T_len - k + 1):
     substr = T[c:c+k]
     if (k_mer_table.get(substr)): 
         k_mer_table.get(substr).append(c)
