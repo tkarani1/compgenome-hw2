@@ -73,8 +73,6 @@ summary = np.empty((num_reads, 5), dtype='object')
 all_matches = np.empty((num_reads, 1), dtype = 'object')
 all_fruitless = np.empty((num_reads, 1), dtype = 'object')
 
-print(T)
-print(k_mer_table)
 
 for r in range(num_reads): 
     query = reads[r][1][0:k]
@@ -106,7 +104,14 @@ for r in range(num_reads):
     summary[r][3] = matches
     summary[r][4] = fruitless
 
-print(summary)
-np.savetxt(output_file, summary, fmt = '%0d %0d %0d %s %s', delimiter=' ')   
+output_ptr = open(output_file, 'w')
+output_txt = ''
+for r in range(num_reads):
+    output_txt += ' '.join(map(str, summary[r][0:3])) + ' '
+    output_txt += ' '.join(map(str, summary[r][3])) + ' '
+    output_txt += ' '.join(map(str, summary[r][4])) + '\n'
+
+output_ptr.write(output_txt)
+output_ptr.close()
 # np.savetxt(output_file, summary[:][0:2], fmt = ('%0d %0d %0d'), delimiter=' ')   
 

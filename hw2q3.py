@@ -122,7 +122,6 @@ for r in range(num_reads):
 
     p1_keys = p1_hamtable.keys()
     for key in p1_keys: 
-        # ham_sum = p1_hamtable[key]
         key_offsets = k_mer_table[key]
         for o in key_offsets: 
             ham_sum = p1_hamtable[key]
@@ -152,6 +151,20 @@ for r in range(num_reads):
                 matches[r][ham_sum].append(o)
 
 print((summary, matches))
+
+output_ptr = open(output_file, 'w')
+output_txt = ''
+for r in range(num_reads):
+    output_txt += ' '.join(map(str, summary[r][:])) + ' '
+    output_txt += '0:' + ','.join(map(str, matches[r][0])) + ' '
+    output_txt += '1:' + ','.join(map(str, matches[r][1])) + ' '
+    output_txt += '2:' + ','.join(map(str, matches[r][2])) + ' '
+    output_txt += '3:' + ','.join(map(str, matches[r][3])) + ' '
+    output_txt += '4:' + ','.join(map(str, matches[r][4])) + '\n'
+
+output_ptr.write(output_txt)
+output_ptr.close()
+
 # np.savetxt(output_file, summary, fmt = '%0d %0d %0d %s %s', delimiter=' ')   
 # np.savetxt(output_file, summary[:][0:2], fmt = ('%0d %0d %0d'), delimiter=' ')   
 
