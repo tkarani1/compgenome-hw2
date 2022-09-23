@@ -76,8 +76,6 @@ all_fruitless = np.empty((num_reads, 1), dtype = 'object')
 
 for r in range(num_reads): 
     query = reads[r][1][0:k]
-    if (r == 11 or r == 12): 
-        print(query)
     # (a) The number of index hits, i.e. the total number of times its leftmost 6-mer occurs in the genome T
     if (k_mer_table.get(query)): 
         hits = k_mer_table[query]
@@ -115,6 +113,3 @@ for r in range(num_reads):
 
 output_ptr.write(output_txt)
 output_ptr.close()
-
-print(T.find('AAATAC'))
-print(T.find('CGGAGG'))
