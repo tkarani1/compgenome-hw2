@@ -94,7 +94,7 @@ matches = np.empty((num_reads, 5), dtype='object')
 matches = [[[] for x in range(5)] for y in range(num_reads)] 
 
 for r in range(num_reads):
-        # 5 offsets
+        # 5 different degrees of mismatches 
     for i in range(5): 
         query = reads[r][1][(i * 6):(i * 6 + 6)]
         if (k_mer_table.get(query)): 
@@ -151,69 +151,58 @@ for r in range(num_reads):
                 matches[r][ham_sum].append(o)
 
 # create table 'variants' to hold information on all of the positions of T
-# 0: char in T, 
-# 1: number of exact matches, 
-# 2: number of mismatches, 
-# 3: list of match touples (read, nt, qual), 
-# 4: list of mismatch touples (read, nt, qual)
-# 5: total weight
-
-variants = np.empty((T_len, 6), dtype='object')  
-variants = [[[] for x in [3,4]] for y in range(T_len)]
-variants = [[0 for x in [1,2,5]] for y in range(T_len)]
-variants = [['' for x in [0]] for y in range(T_len)]   
-greater_than_20_idx = []
-greatest_weight = ()
-second_greatest_weight = ()
-
-# print(reads[0])
-# print(reads[0][1][4])
+    # new dictionary to hold non-reference base and weight
+variants = {}                                               
 
 for r in range(num_reads):
-    for m in range(5): # diff types of mismatches
+    for m in range(5):              # 5 diff types of mismatches
         if len(matches[r][m]) == 0: 
             continue
         
-        print(matches[r][m])
-
-        for i in matches[r][m]: 
+        for i in matches[r][m]:     # all offset matches for that type of mismatch
             
-            T_nt = T[i + 0]
-            read_nt = reads[r][1][i + 0]
-            read_qual = phred33_to_q(reads[r][2][i + 0])
-            variants[i + 0][0] = T_nt
+            for j in range(30):      # every 6 positions in a substring
+                t_idx = i + j            # idx in the genome
+                T_nt = T[t_idx]
+                read_nt = reads[r][1][j]
+                read_qual = phred33_to_q(reads[r][2][j])
 
-            print(T_nt)
-            print(read_nt)
-            print(read_qual)
+                if (T_nt == read_nt):   # when read nt matches genome nt, skip dictionary actions
+                    continue 
 
-            if (T_nt == read_nt):  # bases match
-                print(variants[i + 0][1])
-                variants[i + 0][1] += 1
-                variants[i + 0][3].append((r, read_nt, read_qual))
-            else:  # bases don't match
-                variants[i + 0][2] += 1
-                variants[i + 0][4].append((r, read_nt, read_qual))
-            
-            variants[i + 0][5] += read_qual
-            idx_weight = variants[i + 0][5]
-
-            if idx_weight > 20: 
-                greater_than_20_idx.append(i)
-
-                if idx_weight > second_greatest_weight[2] & idx_weight <= greatest_weight[2]:
-                    greatest_weight = (second_greatest_weight[0], second_greatest_weight[1], second_greatest_weight[2])
-                    second_greatest_weight = (i + 0, T_nt, idx_weight)
+                # if key does not exist, create new key-value in dictionary
+                if (t_idx not in variants): 
+                    variants[t_idx] = {read_nt: read_qual}  # new dictionary to hold non-reference base and weight
                 
-                elif idx_weight > greatest_weight[2]: 
-                    second_greatest_weight = (greatest_weight[0], greatest_weight[1], greatest_weight[2])
-                    greatest_weight = (i + 0, T_nt, idx_weight)
+                # if key does exist, append the value, and add to weight
+                else: 
+                    t_variants = variants[t_idx]
+                    if (read_nt in t_variants): 
+                        t_variants[read_nt] += read_qual
+                    else:
+                        t_variants[read_nt] = read_qual  
 
 
+for t_idx in variants.keys():
+    variants[t_idx] = {k:v for k,v in variants[t_idx].items() if v > 20}    # remove weights less than 20
+    variants[t_idx] = sorted(variants[t_idx].items(), key=lambda x: (-x[1] ,x[0]))   # sort by weight descending order, key ascending order
 
+variants = {k:v for k,v in variants.items() if v != []}
+variants_keys = sorted(variants.keys())
 
-
-
-
-
+output_ptr = open(output_file, 'w')
+output_txt = ''
+for t_idx in variants_keys:
+    t_variants = variants[t_idx]
+    if (len(t_variants) == 0): 
+        continue
+    output_txt += str(t_idx) + ' ' + T[t_idx] + ' '
+    output_txt += str((t_variants[0])[0]) + ' ' + str((t_variants[0])[1]) + ' '
+    if (len(t_variants) > 1):   # second greatest exists
+        output_txt += str((t_variants[1])[0]) + ' ' + str((t_variants[1])[1])
+    else: # no second greatest
+        output_txt += '- 0'
+    output_txt += '\n'
+output_ptr.write(output_txt)
+output_ptr.close()
 
