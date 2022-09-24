@@ -79,22 +79,30 @@ fastq_file.close()
 T_len = len(T)
 k = 6
 k_mer_table = {T[0:k] : [0]}
+k_mer_offsets = {0: [T[0:k]]}
+
 
 for c in range(1, T_len - k + 1):
     substr = T[c:c+k]
     if (k_mer_table.get(substr)): 
-        k_mer_table.get(substr).append(c)
+        k_mer_table[substr].append(c)
     else: 
         k_mer_table[substr] = [c]
+        
+    if (k_mer_offsets.get(c)): 
+        k_mer_offsets[c].append(substr)
+    else: 
+        k_mer_offsets[c] = [substr]
 
-# create summary 
+
+# # create summary 
 num_reads = len(reads)
 summary = np.empty((num_reads, 5), dtype='uint8')
 matches = np.empty((num_reads, 5), dtype='object')
-matches = [[[] for x in range(5)] for y in range(num_reads)] 
+matches = [[[] for x in range(5)] for y in range(num_reads)]
 
 for r in range(num_reads):
-        # 5 different degrees of mismatches 
+        # 5 different phrases
     for i in range(5): 
         query = reads[r][1][(i * 6):(i * 6 + 6)]
         if (k_mer_table.get(query)): 
@@ -128,40 +136,44 @@ for r in range(num_reads):
 
             # ANOTHER OPTION: check if any of the keys for p2 have offsets at the next 6
             if p2_hamtable.get(T[o+6*1:o+6*2]) is None:
-                break
+                continue
             else: 
                 ham_sum += p2_hamtable.get(T[o+6*1:o+6*2])
 
             if p3_hamtable.get(T[o+6*2:o+6*3]) is None: 
-                break
+                continue
             else: 
                 ham_sum += p3_hamtable.get(T[o+6*2:o+6*3])
             
             if p4_hamtable.get(T[o+6*3:o+6*4]) is None: 
-                break
+                continue
             else: 
                 ham_sum += p4_hamtable.get(T[o+6*3:o+6*4])
             
             if p5_hamtable.get(T[o+6*4:o+6*5]) is None: 
-                break
+                continue
             else: 
                 ham_sum += p5_hamtable.get(T[o+6*4:o+6*5])
 
             if ham_sum <= 4:
                 matches[r][ham_sum].append(o)
 
+# np.save('matches.npy', matches, allow_pickle=True)
+# matches2 = np.load('matches.npy', allow_pickle=True)
 # create table 'variants' to hold information on all of the positions of T
-    # new dictionary to hold non-reference base and weight
-variants = {}                                               
+#     new dictionary to hold non-reference base and weight
+variants = {}
 
 for r in range(num_reads):
+    
+    
     for m in range(5):              # 5 diff types of mismatches
         if len(matches[r][m]) == 0: 
             continue
         
         for i in matches[r][m]:     # all offset matches for that type of mismatch
             
-            for j in range(30):      # every 6 positions in a substring
+             for j in range(30):      # every 6 positions in a substring
                 t_idx = i + j            # idx in the genome
                 T_nt = T[t_idx]
                 read_nt = reads[r][1][j]
@@ -181,6 +193,8 @@ for r in range(num_reads):
                         t_variants[read_nt] += read_qual
                     else:
                         t_variants[read_nt] = read_qual  
+
+
 
 
 for t_idx in variants.keys():
